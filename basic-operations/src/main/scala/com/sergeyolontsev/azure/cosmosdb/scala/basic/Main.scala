@@ -58,12 +58,12 @@ object Main {
     collectionDefinition.setPartitionKey(partitionKeyDefinition)
 
     // Set indexing policy to be range for string and number
-
     val indexingPolicy = new IndexingPolicy
     val includedPaths = new java.util.ArrayList[IncludedPath]
     val includedPath = new IncludedPath
     includedPath.setPath("/*")
     val indexes = new java.util.ArrayList[Index]
+
     val stringIndex = Index.Range(DataType.String)
     stringIndex.set("precision", -1)
     indexes.add(stringIndex)
@@ -71,18 +71,16 @@ object Main {
     val numberIndex = Index.Range(DataType.Number)
     numberIndex.set("precision", -1)
     indexes.add(numberIndex)
+
     includedPath.setIndexes(indexes)
     includedPaths.add(includedPath)
     indexingPolicy.setIncludedPaths(includedPaths)
     collectionDefinition.setIndexingPolicy(indexingPolicy)
 
     //Create collection
-    val multiPartitionRequestOptions = new RequestOptions
-    multiPartitionRequestOptions.setOfferThroughput(throughPut)
     val databaseLink = s"/dbs/$databaseName"
-    val collectionLink = s"/dbs/$databaseName/colls/$collectionName"
+    val collectionLink = s"$databaseLink/colls/$collectionName"
 
-    //val createCollectionObs = client.createCollection(databaseLink, collectionDefinition, multiPartitionRequestOptions)
     val colReadObs = client.readCollection(collectionLink, null)
 
     val colOperationObs = colReadObs
@@ -93,6 +91,9 @@ object Main {
         (e: Throwable) =>
           e match {
             case x: DocumentClientException if x.getStatusCode == 404 => {
+              val multiPartitionRequestOptions = new RequestOptions
+              multiPartitionRequestOptions.setOfferThroughput(throughPut)
+
               client.createCollection(databaseLink, collectionDefinition, multiPartitionRequestOptions)
             }
             case _ => Observable.error(e)
